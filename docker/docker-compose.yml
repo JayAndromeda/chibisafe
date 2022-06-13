@@ -1,58 +1,52 @@
 version: "3.7"
 
-services:
-    nginx:
-        build:
-            context: ./nginx
-            dockerfile: Dockerfile
-        expose:
-            - "80"
-            - "443"
-        ports:
-            - "80:80"
-            - "443:443"
-        restart: unless-stopped
-        healthcheck:
-            test: ["CMD", "service", "nginx", "status"]
-            interval: 60s
-            timeout: 5s
+networks: #Add to my Nginx Network in Docker. Just makes life easier for me, and you may need to change this depending on what reverse proxy you are using.
+    default:
+        external:
+            name: "nginxproxymanager_default"
 
+services:
     chibisafe:
         build:
             context: ../
             dockerfile: ./docker/chibisafe/Dockerfile
-        expose:
-            - "5000"
-            - "5001"
+        image: rapphy243/chibisafe #Tag Docker Image
+        container_name: chibisafe #Name container name
+        volumes:
+            - ./chibisafe-data:/usr/chibisafe/uploads
+            - ./chibisafe-database:/usr/chibisafe/database
+        ports: #You still should have a reverse proxy pointing to the container. Connecting to it through localhost or any other means might/will probably give you issues.
+            - 5051:5000
+        hostname: chibisafe
         restart: unless-stopped
         environment:
-            OVERWRITE_SETTINGS: "false"
+            OVERWRITE_SETTINGS: "true"
             CHUNK_SIZE: 90
             ROUTE_PREFIX: /api
             RATE_LIMIT_WINDOW: 2
             RATE_LIMIT_MAX: 5
-            BLOCKED_EXTENSIONS: ".jar,.exe,.msi,.com,.bat,.cmd,.scr,.ps1,.sh"
-            SECRET: ""
+            SECRET: #"wowfcgMHqZHwOIMLadWrKu3liyqPOOILpDLSDvuxq3YGhJmiZXJCVpnF96l11WfR" <--- "openssl rand -base64 32" To Generate.
             MAX_LINKS_PER_ALBUM: 5
             META_THEME_COLOR: "#20222b"
-            META_DESCRIPTION: "Blazing fast file uploader and bunker written in node! 🚀"
-            META_KEYWORDS: "chibisafe,upload,uploader,file,vue,images,ssr,file uploader,free"
-            META_TWITTER_HANDLE: ""
+            META_DESCRIPTION: "Blazing fast file uploader!🚀"
+            META_KEYWORDS: "chibisafe,upload,uploader,file,vue,images,ssr,file uploader"
+            META_TWITTER_HANDLE: "@jenandromeda24"
+            BLOCKED_EXTENSIONS: ".msi"
             SERVER_PORT: 5000
-            DOMAIN: "http://localhost:5000"
+            DOMAIN: "http://localhost:5000" #Change this to the domain you are hosting this on or you will get network errors when trying to login.
             SERVICE_NAME: chibisafe
-            MAX_SIZE: 5000
+            MAX_SIZE: 72727
             GENERATE_THUMBNAILS: "true"
             GENERATE_ZIPS: "true"
-            STRIP_EXIF: "true"
+            STRIP_EXIF: "false" #Recommended to keep true.
             SERVE_WITH_NODE: "true"
-            GENERATED_FILENAME_LENGTH: 6
-            GENERATED_ALBUM_LENGTH: 4
+            GENERATED_FILENAME_LENGTH: 10
+            GENERATED_ALBUM_LENGTH: 6
             PUBLIC_MODE: "false"
             USER_ACCOUNTS: "true"
-            ADMIN_ACCOUNT: ""
-            ADMIN_PASSWORD: ""
-            DB_CLIENT: "sqlite3"
+            ADMIN_ACCOUNT: #"admin"
+            ADMIN_PASSWORD: #"admin"
+            DB_CLIENT: "sqlite3" #You probably should be running a external DB, but there is one already part of the container.
             DB_HOST: ""
             DB_USER: ""
             DB_PASSWORD: ""
